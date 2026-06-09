@@ -1,5 +1,8 @@
 class LinkCreator {
 	createLinkWithTitle(title, destination) {
+		if (!destination) {
+			return title;
+		}
 		return `[${title}](${destination})`
 	}
 

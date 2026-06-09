@@ -3,14 +3,43 @@ class CompensationCalculator {
 		let sign_in_bonus = year == 0 ? comp.sign_in_bonus : 0;
 		let cash_multiplier = Math.pow(1 + yearlySalaryIncreasePercent / 100, year);
 		let cash = comp.salary * (1 + comp.bonus_target / 100) * cash_multiplier;
-		let initial_rsu_this_year =
-			(year < comp.rsu_vesting_over_years) ?
-				comp.rsu / comp.rsu_vesting_over_years
-				: 0;
-		let refreshed_rsu_this_year =
-			(year > 0) ?
-				Math.max(year, comp.rsu_vesting_over_years) * comp.expected_yearly_rsu_refresh / comp.rsu_vesting_over_years
-				: 0;
+		let has_initial_rsu_percentages = comp.rsu_initial_grant_yearly_percentages &&
+			(Array.isArray(comp.rsu_initial_grant_yearly_percentages) || typeof comp.rsu_initial_grant_yearly_percentages.length === 'number') &&
+			comp.rsu_initial_grant_yearly_percentages.length > 0;
+
+		let initial_rsu_this_year = 0;
+		if (has_initial_rsu_percentages) {
+			if (year < comp.rsu_initial_grant_yearly_percentages.length) {
+				let pct = comp.rsu_initial_grant_yearly_percentages[year];
+				initial_rsu_this_year = comp.rsu * (pct / 100);
+			}
+		} else {
+			initial_rsu_this_year =
+				(year < comp.rsu_vesting_over_years) ?
+					comp.rsu / comp.rsu_vesting_over_years
+					: 0;
+		}
+
+		let has_refresh_percentages = comp.rsu_refresh_yearly_percentages &&
+			(Array.isArray(comp.rsu_refresh_yearly_percentages) || typeof comp.rsu_refresh_yearly_percentages.length === 'number') &&
+			comp.rsu_refresh_yearly_percentages.length > 0;
+
+		let refreshed_rsu_this_year = 0;
+		if (year > 0) {
+			if (has_refresh_percentages) {
+				for (let y = 1; y <= year; y++) {
+					let age = year - y;
+					if (age < comp.rsu_refresh_yearly_percentages.length) {
+						let pct = comp.rsu_refresh_yearly_percentages[age];
+						refreshed_rsu_this_year += comp.expected_yearly_rsu_refresh * (pct / 100);
+					}
+				}
+			} else {
+				refreshed_rsu_this_year =
+					Math.max(year, comp.rsu_vesting_over_years) * comp.expected_yearly_rsu_refresh / comp.rsu_vesting_over_years;
+			}
+		}
+
 		return sign_in_bonus + cash + initial_rsu_this_year + refreshed_rsu_this_year;
 	}
 
